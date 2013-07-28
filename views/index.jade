@@ -1,5 +1,25 @@
 extends layout
 
 block content
-  h1= title
-  p Welcome to #{title}
+  h2 Welcome to the #{title} site.
+  p
+    | 7 Breaths is a project born out of the NHS Hack Day group. The simple idea was to chalenge the dogma
+    | that a full minute of counting is required to obtain a respiratory rate. The hypothesis is that by counting
+    | for a fixed number of breaths a respiratory rate can be obtained that has the same sensitivity as counting
+    | over one minute.
+
+  p
+    | We wanted to create a completly open project to collect, analyse and report the data. The mobile
+    | app source is available in the &nbsp;
+    a(href="https://github.com/ClinicalSoftwareSolutions/7breaths") Clinical Software Solutions Repository
+    | &nbsp; as is the source to &nbsp;
+    a(href="https://github.com/ClinicalSoftwareSolutions/7breathsdata") this web app
+
+  p
+    | The app is available to download free in the app stores:
+    br
+    a(target="_blank", href="https://play.google.com/store/apps/details?id=uk.co.clinicalsoftwaresolutions.sevenbreaths")
+      img(alt="Get it on Google Play", src="https://developer.android.com/images/brand/en_generic_rgb_wo_45.png")
+    | &nbsp;
+    a(target="_blank", href="https://itunes.apple.com/gb/app/7breaths-respiratory-rate/id663101259?mt=8")
+      img(alt="Download from the iTunes App Store", src="/images/DownloadAppStore135x40.png", width="135", height="40")
