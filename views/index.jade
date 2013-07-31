@@ -24,25 +24,43 @@ block content
     a(target="_blank", href="https://itunes.apple.com/gb/app/7breaths-respiratory-rate/id663101259?mt=8")
       img(alt="Download from the iTunes App Store", src="/images/DownloadAppStore135x40.png", width="135", height="40")
 
-  h3 Registered Users
-  img#loading-indicator(src="/images/ajax-loader.gif") 
-  h4#regusers &nbsp;
+  div.row
+    div.span4
+      h3 Registered Users
+      img#loading-indicator_users(src="/images/ajax-loader.gif") 
+      h4#regusers &nbsp;
+    div.span4
+      h3 Data points collected
+      img#loading-indicator_rr(src="/images/ajax-loader.gif") 
+      h4#datapoints &nbsp;
 
 block pagescripts
   script.
     $(document).ready(function(){
-      $.ajax({
-      url: '/users/count',
-        type: 'GET',
-        cache: false,
+      // Get some user stats
+      $.ajax({url: '/users/count', type: 'GET', cache: false,
         success: function(data){
-          $('#loading-indicator').hide();
+          $('#loading-indicator_users').hide();
           $('#regusers').html("Total registered: " + data.count + "<br />iOS: " + data.ios_count + "<br />Android: " + data.android_count);
         },
         error: function(jqXHR, textStatus, err){
           console.log("Error getting the user count");
-          $('#loading-indicator').hide();
+          $('#loading-indicator_users').hide();
           $('#regusers').html("Error getting count ...");
         }
       });
+
+      // Get the RR stats
+      $.ajax({url: '/rr/count', type: 'GET', cache: false,
+        success: function(data){
+          $('#loading-indicator_rr').hide();
+          $('#datapoints').html( data.count );
+        },
+        error: function(jqXHR, textStatus, err){
+          console.log("Error getting the rr count");
+          $('#loading-indicator_rr').hide();
+          $('#datapoints').html("Error getting count ...");
+        }
+      });
+
     });

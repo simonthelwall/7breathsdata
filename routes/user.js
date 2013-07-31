@@ -1,4 +1,6 @@
-var sys = require('sys');
+/*
+ * User model API
+ */
 
 var sbcfg = require('../stackmob.cfg.js');
 var StackMob = require("stackmob-client")({
@@ -10,7 +12,6 @@ var StackMob = require("stackmob-client")({
 /*
  * GET users listing.
  */
-
 exports.list = function(req, res){
   res.send("respond with a resource");
 };
