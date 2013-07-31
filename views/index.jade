@@ -37,7 +37,7 @@ block pagescripts
         cache: false,
         success: function(data){
           $('#loading-indicator').hide();
-          $('#regusers').html(data.count);
+          $('#regusers').html("Total registered: " + data.count + "<br />iOS: " + data.ios_count + "<br />Android: " + data.android_count);
         },
         error: function(jqXHR, textStatus, err){
           console.log("Error getting the user count");
