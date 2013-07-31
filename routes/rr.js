@@ -18,13 +18,10 @@ exports.count = function(req, res) {
   var rr = new Collection();
   rr.fetch({
   	success: function(results) {
-  	  var _rr = results.toJSON();
-
-      var _count = _rr.length;
-      for(var i=0; i<_count; i++) {
-      	var result = _rr[i];
-      }
-      res.send({count: _count});
+      // devices = _.uniq( results.pluck("device") );
+      // console.log("Device array after to uniq: " + devices.length);
+ 
+      res.send({count: results.length});
   	},
   	error: function() {
       console.log("rr:count | Stackmob fetch error");  		
