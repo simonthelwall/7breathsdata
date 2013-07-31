@@ -23,3 +23,26 @@ block content
     | &nbsp;
     a(target="_blank", href="https://itunes.apple.com/gb/app/7breaths-respiratory-rate/id663101259?mt=8")
       img(alt="Download from the iTunes App Store", src="/images/DownloadAppStore135x40.png", width="135", height="40")
+
+  h3 Registered Users
+  img#loading-indicator(src="/images/ajax-loader.gif") 
+  h4#regusers &nbsp;
+
+block pagescripts
+  script.
+    $(document).ready(function(){
+      $.ajax({
+      url: '/users/count',
+        type: 'GET',
+        cache: false,
+        success: function(data){
+          $('#loading-indicator').hide();
+          $('#regusers').html(data.count);
+        },
+        error: function(jqXHR, textStatus, err){
+          console.log("Error getting the user count");
+          $('#loading-indicator').hide();
+          $('#regusers').html("Error getting count ...");
+        }
+      });
+    });
