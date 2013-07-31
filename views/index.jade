@@ -34,10 +34,10 @@ block content
       h3 Data points collected
       img#loading-indicator_rr(src="/images/ajax-loader.gif") 
       h4#datapoints &nbsp;
-      canvas#datagoal(height="50" width="200")
+      canvas#datagoal(height="180", width="150")
 
 block pagescripts
-  script(src="/javascritps/Chart.js")
+  script(src="/javascripts/Chart.js")
 
   script.
     $(document).ready(function(){
@@ -61,16 +61,18 @@ block pagescripts
           $('#datapoints').html( data.count );
 
           var barChartData = {
-            labels : ["Goal"],
-            datasets : [
-            {
-              fillColor : "rgba(220,220,220,0.5)",
-              strokeColor : "rgba(220,220,220,1)",
-              data : [data.count]
+            labels : ["Current", "Target"],
+            datasets : [{
+              fillColor : "rgba(151,187,205,0.5)",
+              strokeColor : "rgba(151,187,205,1)",
+              data : [ data.count, 500 ]
             },
             ]
           }
-          var myLine = new Chart(document.getElementById("datagoal").getContext("2d")).Bar(barChartData,{align:'h'});
+          //Get context with jQuery - using jQuery's .get() method.
+          var ctx = $("#datagoal").get(0).getContext("2d");
+          //This will get the first returned node in the jQuery collection.
+          var goalChart = new Chart(ctx).Bar(barChartData, {scaleShowGridLines: false, /*align: 'h'*/});
         },
         error: function(jqXHR, textStatus, err){
           console.log("Error getting the rr count");
