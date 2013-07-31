@@ -34,8 +34,11 @@ block content
       h3 Data points collected
       img#loading-indicator_rr(src="/images/ajax-loader.gif") 
       h4#datapoints &nbsp;
+      canvas#datagoal(height="50" width="200")
 
 block pagescripts
+  script(src="/javascritps/Chart.js")
+
   script.
     $(document).ready(function(){
       // Get some user stats
@@ -56,6 +59,18 @@ block pagescripts
         success: function(data){
           $('#loading-indicator_rr').hide();
           $('#datapoints').html( data.count );
+
+          var barChartData = {
+            labels : ["Goal"],
+            datasets : [
+            {
+              fillColor : "rgba(220,220,220,0.5)",
+              strokeColor : "rgba(220,220,220,1)",
+              data : [data.count]
+            },
+            ]
+          }
+          var myLine = new Chart(document.getElementById("datagoal").getContext("2d")).Bar(barChartData,{align:'h'});
         },
         error: function(jqXHR, textStatus, err){
           console.log("Error getting the rr count");
