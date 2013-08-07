@@ -21,10 +21,11 @@ exports.count = function(req, res) {
       // devices = _.uniq( results.pluck("device") );
       // console.log("Device array after to uniq: " + devices.length);
  
+      console.log("rr:count = " + results.length);
       res.send({count: results.length});
   	},
   	error: function() {
-      console.log("rr:count | Stackmob fetch error");  		
+      console.log("rr:count | Stackmob fetch error");
       res.send({count: 'Not found, please retry'});
   	}
   });
