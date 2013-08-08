@@ -18,11 +18,32 @@ exports.count = function(req, res) {
   var rr = new Collection();
   rr.fetch({
   	success: function(results) {
+      var dataPointCount = results.length;
+      console.log("rr:count = " + dataPointCount);
+
       // devices = _.uniq( results.pluck("device") );
       // console.log("Device array after to uniq: " + devices.length);
- 
-      console.log("rr:count = " + results.length);
-      res.send({count: results.length});
+
+      /*
+       Analyse the number of data points people submit
+       */
+      var datapointcount = [];
+      var grouped = results.groupBy( function(model){ return model.get('device')});
+      //console.log("grouped = " + JSON.stringify(grouped,null,2));
+
+      for(device in grouped) { 
+          var models = grouped[device];
+          console.log('Device: '+device+ " models lenght: " + models.length);
+          datapointcount[models.length] = (datapointcount[models.length]) ? datapointcount[models.length]+1 : 1;
+      }
+
+      // Fill in the sparse array with zeros
+      for(i=1,l=datapointcount.length;i<l;i++){
+        if(!datapointcount[i]) {
+          datapointcount[i] = 0; 
+        }
+      }
+      res.send({count: dataPointCount, datapointcount: datapointcount});
   	},
   	error: function() {
       console.log("rr:count | Stackmob fetch error");

@@ -35,6 +35,10 @@ block content
       img#loading-indicator_rr(src="/images/ajax-loader.gif") 
       h4#datapoints &nbsp;
       canvas#datagoal(height="180", width="150")
+    div.span4
+      h3 Submissions per user
+      img#loading-indicator_pointcount(src="/images/ajax-loader.gif")
+      canvas#datapointcount(height="180", width="280")
 
 block pagescripts
   script(src="/javascripts/Chart.js")
@@ -58,6 +62,7 @@ block pagescripts
       $.ajax({url: '/rr/count', type: 'GET', cache: false,
         success: function(data){
           $('#loading-indicator_rr').hide();
+          $('#loading-indicator_pointcount').hide();
           $('#datapoints').html( data.count );
 
           var target = 500;
@@ -69,21 +74,53 @@ block pagescripts
               data : [ data.count, target ]
             },
             ]
-          }
+          };
+
           //Get context with jQuery - using jQuery's .get() method.
           var ctx = $("#datagoal").get(0).getContext("2d");
           //This will get the first returned node in the jQuery collection.
           var goalChart = new Chart(ctx).Bar(barChartData, {scaleShowGridLines: false,
-            scaleOverride: true,  
+            scaleOverride: true,
             scaleSteps : 5,
             //- //Number - The value jump in the hard coded scale
             scaleStepWidth : (target / 5),
             scaleStartValue : 0,
             /*align: 'h'*/});
+
+          /*
+            Now do a chart for number of data points collected per device
+           */
+          var datapointcounts = data.datapointcount;
+          var labels = [];
+          for (i=0,l=datapointcounts.length;i<l;i++) {
+            labels[i] = "" + i;
+            }
+
+          var barChartData = {
+            labels: labels,
+            datasets : [{
+              fillColor : "rgba(151,187,205,0.5)",
+              strokeColor : "rgba(151,187,205,1)",
+              data : datapointcounts
+            }]
+          };
+
+          //Get context with jQuery - using jQuery's .get() method.
+          var ctx = $("#datapointcount").get(0).getContext("2d");
+          //This will get the first returned node in the jQuery collection.
+          var pointCountChart = new Chart(ctx).Bar(barChartData, {scaleShowGridLines: false,
+            //- scaleOverride: true,
+            //- scaleSteps : 5,
+            //- //- //Number - The value jump in the hard coded scale
+            //- scaleStepWidth : (target / 5),
+            //- scaleStartValue : 0,
+            });
+
         },
         error: function(jqXHR, textStatus, err){
           console.log("Error getting the rr count");
           $('#loading-indicator_rr').hide();
+          $('#loading-indicator_pointcount').hide();
           $('#datapoints').html("Error getting count ...");
         }
       });
