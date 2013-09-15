@@ -23,3 +23,5 @@ for (i in 1:length(j.data)){
 a[1,]
 a <- a[2:length(a$rr_id), ]
 head(a)
+
+write.csv(a, "sample_data.csv", )
