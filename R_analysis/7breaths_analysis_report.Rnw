@@ -1,0 +1,126 @@
+\documentclass[a4paper]{tufte-handout}
+\title{Analysis of 7breaths data}
+\author{Simon Thelwall}
+\usepackage{booktabs}
+\usepackage{xspace}
+\usepackage{amsmath}%
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+
+
+\begin{document}
+
+\maketitle
+
+\section{Objectives}
+\begin{enumerate}
+\item To characterise the data collected in the seven breaths study.
+\item To determine the correlation between the time taken to take seven breaths and the measured respiration rate. 
+\end{enumerate}
+
+\section{Results}
+<<read_in, echo=FALSE, results='asis', warning=FALSE, message=FALSE>>=
+library(ggplot2)
+library(plyr)
+setwd("/home/simon/R_stuff/breaths/7breathsdata/R_analysis")
+load("converted.RData")
+
+df$data <- as.numeric(df$data)
+
+# Generate differences between breaths ####
+# breath sequence number
+df$breath.n <- sequence(rle(df$rr_id)$lengths)
+#table(df$breath.n)
+
+# Calculate time differences
+df$t.diff[2:length(df$rr_id)] <- diff(df$data,1)/1000
+df$t.diff[df$breath.n==1] <- NA # remove those differences between last and first observations
+
+
+# Max n breaths
+max.breaths <- ddply(df, .(rr_id), summarise, max(breath.n, na.rm = TRUE))
+names(max.breaths) <- c("rr_id", "max")
+df <- join(df, max.breaths)
+rm(max.breaths)
+
+# time of first and last breaths
+tfl <- ddply(df, .(rr_id), summarise, tf = min(data), tl = max(data))
+df <- join(df, tfl)
+rm(tfl)
+
+# time of seventh breath
+t7.rr_id <- df$rr_id[df$breath.n == 7]
+t7.data <- df$data[df$breath.n == 7]
+
+t7 <- as.data.frame(cbind(t7.rr_id, t7.data), stringsAsFactors = FALSE)
+names(t7) <- c("rr_id", "t7")
+t7$t7 <- as.numeric(t7$t7)
+df <- join(df, t7)
+rm(t7)
+
+# Calculate some respiration rates
+df$t7.tdiff <- (df$t7 - df$tf)/1000 # time in seconds between first and seventh breath
+df$tfl.diff <- ((df$tl - df$tf)/1000)/60 # time in minutes 
+df$tfl.rr <- df$max/df$tfl.diff # breaths per minute
+
+# get single observation data
+df$uniq <- !duplicated(df$rr_id)
+df2 <- df[df$uniq == 1,]
+
+@
+
+Data consisted of \Sexpr{length(df$rr_id)} observations on \Sexpr{sum(df$uniq, na.rm = TRUE)} individuals. 
+The median number of breaths per individual was \Sexpr{median(df$max)} (IQR: \Sexpr{quantile(df$max, probs = 0.25, names = FALSE)} - \Sexpr{quantile(df$max, probs = 0.75, names = FALSE)}). 
+A total of \Sexpr{sum(df$uniq[df$max<7], na.rm = TRUE)} individuals contributed less than seven breaths, thus the final data set consisted of \Sexpr{length(df$rr_id[df$max>=7])} observations on \Sexpr{sum(df$uniq[df$max>=7], na.rm = TRUE)} individuals. \\
+\begin{figure*}
+<<tdiff_hist, echo=FALSE, warning=FALSE, fig.width=5.2, fig.height=3, out.width='1\\linewidth', fig.keep='last', message=FALSE>>=
+p <- ggplot(df2, aes(x = t7.tdiff)) + geom_histogram(binwidth = 1)
+p + scale_x_continuous("Time to seven breaths (s)")
+
+q <- ggplot(df2, aes(x = tfl.rr)) + geom_histogram()
+q + scale_x_continuous("Respiration rate (breaths per minute)")
+@
+\caption{Distribution of time to seven breaths}
+\label{tdiff_hist}
+\end{figure*}
+
+\begin{figure*}
+<<rr_hist, echo=FALSE, warning=FALSE, fig.width=5.2, fig.height=3, out.width='1\\linewidth', fig.keep='last', message=FALSE>>=
+q <- ggplot(df2, aes(x = tfl.rr)) + geom_histogram()
+q + scale_x_continuous("Respiration rate (breaths per minute)")
+@
+\caption{Distribution of measured respiration rate}
+\label{rr_hist}
+\end{figure*}
+The median respiration rate was \Sexpr{round(median(df2$tfl.rr), 0)} (IQR: \Sexpr{round(quantile(df2$tfl.rr, probs = 0.25, names = FALSE), 0)} - \Sexpr{round(quantile(df2$tfl.rr, probs = 0.75, names = FALSE), 0)}), \Sexpr{sum(df2$uniq[df2$tfl.rr>=100], na.rm = TRUE)} individuals had a respiration rate equal to greater than 100 breaths per minute. 
+The median time to seven breaths was \Sexpr{round(median(df2$t7.tdiff, na.rm = TRUE), 0)} seconds (IQR: \Sexpr{round(quantile(df2$t7.tdiff, probs = 0.25, names = FALSE, na.rm = TRUE), 0)} - \Sexpr{round(quantile(df2$t7.tdiff, probs = 0.75, names = FALSE, na.rm = TRUE), 0)}), \Sexpr{sum(df2$uniq[df2$t7.tdiff<4], na.rm = TRUE)} individuals had a time to seven breaths less than four seconds. 
+Figures \ref{tdiff_hist} and \ref{rr_hist} show the distribution of time to seven breaths and respiration rate respectively. \\
+
+\begin{figure*}
+<<normal_scatter, echo=FALSE, warning=FALSE, fig.width=5.2, fig.height=3, out.width='1\\linewidth', fig.keep='last'>>=
+p <- ggplot(df2, aes(x = tfl.rr, y = t7.tdiff)) + geom_point()
+p + scale_x_continuous("Breaths per minute") + scale_y_continuous("Time to seven breaths (s)")
+@
+\caption{Correlation of time to seven breaths with measured respiration rate}
+\label{normal_scatter}
+\end{figure*}
+
+\begin{figure*}
+<<logged_scatter,echo=FALSE, warning=FALSE, fig.width=5.2, fig.height=3, out.width='1\\linewidth', fig.keep='last'>>=
+p <- ggplot(df2, aes(x = log(tfl.rr), y = log(t7.tdiff))) + geom_point()
+p + scale_x_continuous("Log breaths per minute") + 
+  scale_y_continuous("log time to seven breaths (s)")
+@
+\caption{Correlation of logged time to seven breaths with logged respiration rate}
+\label{logged_scatter}
+\end{figure*}
+<<corr, echo=FALSE, results='asis'>>=
+correlation <- cor(x = df2$tfl.rr, y = df2$t7.tdiff, use = "complete.obs")
+
+c.test.results <- cor.test(x = df2$tfl.rr, y = df2$t7.tdiff, alternative = "two.sided", 
+                           method = "pearson")
+@
+The Pearson correlation coefficient between the time to seven breaths and the respiration rate was \Sexpr{round(correlation, 2)} (p \textless 0.001).
+Figures \ref{normal_scatter} and \ref{logged_scatter} show the correlation between the time to seven breaths and the respiration rate for raw data and logged results respectively. 
+\end{document}
