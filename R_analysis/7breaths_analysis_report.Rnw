@@ -23,6 +23,8 @@
 <<read_in, echo=FALSE, results='asis', warning=FALSE, message=FALSE>>=
 library(ggplot2)
 library(plyr)
+library(xtable)
+
 setwd("/home/simon/R_stuff/breaths/7breathsdata/R_analysis")
 load("converted.RData")
 
@@ -122,5 +124,37 @@ c.test.results <- cor.test(x = df2$tfl.rr, y = df2$t7.tdiff, alternative = "two.
                            method = "pearson")
 @
 The Pearson correlation coefficient between the time to seven breaths and the respiration rate was \Sexpr{round(correlation, 2)} (p \textless 0.001).
-Figures \ref{normal_scatter} and \ref{logged_scatter} show the correlation between the time to seven breaths and the respiration rate for raw data and logged results respectively. 
+Figures \ref{normal_scatter} and \ref{logged_scatter} show the correlation between the time to seven breaths and the respiration rate for raw data and logged results respectively. \\
+
+Given the log-log distribution of values is linear, we can use linear regression to predict values a respiration rate in breaths per minute for a given time to seven breaths. 
+The regression outcome is given in table \ref{reg.tab} and the results of the prediction is given in table \ref{pred.table}.\\
+<<prediction, echo=FALSE, results='asis'>>=
+# Prediction ####
+# Given the correlation between t7.tdiff and 1 min rr, how good is the prediction of rr, for a given t7/
+#range(df$t7.tdiff, na.rm = TRUE)
+t7.tdiff <- seq(10, 30, 2)
+rr.p <- rep(NA, 11)
+p.frame <- as.data.frame(cbind(t7.tdiff, rr.p), stringsAsFactors = FALSE)
+rm(t7.tdiff, rr.p)
+
+t7.m <- lm(log(tfl.rr) ~ log(t7.tdiff), data = df)
+#summary(t7.m)
+print(xtable(t7.m, caption = "Linear regression of time to seven breaths on respiration rate", 
+             label = "reg.tab"))
+
+predicted <- round(exp(predict(t7.m, newdata = p.frame, interval = "prediction")),2)
+p.frame$rr.p <- NULL
+p.frame <- cbind(p.frame, predicted)
+p.frame$fit2 <- paste(sprintf("%.2f", p.frame$fit), " (", sprintf("%.2f", p.frame$lwr), "-", 
+                      sprintf("%.2f", p.frame$upr), ")", sep = "")
+p.frame$fit <- NULL
+p.frame$lwr <- NULL
+p.frame$upr <- NULL
+names(p.frame) <- c("\\shortstack{Time to seven \\\\breaths (s)}", "\\shortstack{Predicted respiration rate \\\\(minutes, with prediction interval)}")
+p.frame <- xtable(p.frame, 
+                  caption = "Predicted respiration values for given times to seven breaths.",
+                  label = "pred.table")
+digits(p.frame)[2] <- 0
+print(p.frame, booktabs = TRUE, include.rownames = FALSE, sanitize.text.function = identity)
+@
 \end{document}

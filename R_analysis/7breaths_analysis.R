@@ -1,5 +1,6 @@
 library(ggplot2)
 library(plyr)
+library(xtable)
 setwd("/home/simon/R_stuff/breaths/7breathsdata/R_analysis")
 load("converted.RData")
 head(df)
@@ -20,11 +21,11 @@ table(df$breath.n)
 
 # Calculate time differences
 df$t.diff[2:length(df$rr_id)] <- diff(df$data,1)/1000
-df$t.diff[df$breath_n==1] <- NA # remove those differences between last and first observations
+df$t.diff[df$breath.n==1] <- NA # remove those differences between last and first observations
 head(df)
 
 # Max n breaths
-max.breaths <- ddply(df, .(rr_id), summarise, max(breath_n, na.rm = TRUE))
+max.breaths <- ddply(df, .(rr_id), summarise, max(breath.n, na.rm = TRUE))
 head(max.breaths)
 names(max.breaths) <- c("rr_id", "max")
 table(max.breaths$max.breaths)
@@ -40,8 +41,8 @@ rm(tfl)
 head(df)
 
 # time of seventh breath
-t7.rr_id <- df$rr_id[df$breath_n == 7]
-t7.data <- df$data[df$breath_n == 7]
+t7.rr_id <- df$rr_id[df$breath.n == 7]
+t7.data <- df$data[df$breath.n == 7]
 length(t7.rr_id)
 length(t7.data)
 t7 <- as.data.frame(cbind(t7.rr_id, t7.data), stringsAsFactors = FALSE)
@@ -57,6 +58,33 @@ df$t7.tdiff <- (df$t7 - df$tf)/1000 # time in seconds between first and seventh 
 df$tfl.diff <- ((df$tl - df$tf)/1000)/60 # time in minutes 
 df$tfl.rr <- df$max/df$tfl.diff # breaths per minute
 head(df)
+
+# Important to consider bias by recording > 1 minute.
+# Therefore need to consider stopping all observations at 1 minute after first breath. 
+# Breaths will not fall on 1 minute time exactly. Want number of breaths completed in one minute. 
+# Therefore drop any observations > 1 minute. 
+df$tff <- ((df$data/1000) - (df$tf/1000))/60 # time difference from first breath in minutes
+
+df$rr.1.min <- df$breath.n/df$tff
+df$rr.1.min[df$tff>1] <- NA # remove measures > 1 min.
+df$rr.1.min[is.infinite(df$rr.1.min)] <- NA #remove divide by zero errors.
+head(df)
+head(df$rr_id[df$breath.n==df$max])
+df$breath.n.2 <- df$breath.n # copy breath number to obtain breath number closest to 1 minute
+df$breath.n.2[df$tff>1] <- NA  # get rid of copies > 1 minute
+max.2 <- ddply(df, .(rr_id), summarise, max.breath.2 = max(breath.n.2))
+df <- join(df, max.2) # get a column of the max number of breaths within one minute. This is the 1 minute respiration rate
+rm(max.2)
+
+df[df$rr_id == "64979374a3614043809b9c14156b42d3",]
+qplot(tff, data = df, geom = "histogram")
+qplot(t.diff, data = df, geom = "histogram", binwidth = 1)
+range(df$t.diff, na.rm = TRUE)
+levels(factor(df$rr_id[df$t.diff>30])) #11 records with t.diff> 30
+df[df$rr_id == "09b8ba29d7ad4f09a4cf9b2075fd16b0",]
+df$data[1]/1000
+# df$data[5]/1000
+# (df$data[5]/1000) - (df$data[1]/1000)
 
 # get single observation data
 df$uniq <- !duplicated(df$rr_id)
@@ -85,3 +113,27 @@ correlation <- cor(x = df2$tfl.rr, y = df2$t7.tdiff, use = "complete.obs")
 
 c.test.results <- cor.test(x = df2$tfl.rr, y = df2$t7.tdiff, alternative = "two.sided", 
                            method = "pearson")
+
+# Prediction ####
+# Given the correlation between t7.tdiff and 1 min rr, how good is the prediction of rr, for a given t7/
+range(df$t7.tdiff, na.rm = TRUE)
+t7.tdiff <- seq(10, 30, 2)
+rr.p <- rep(NA, 11)
+p.frame <- as.data.frame(cbind(t7.tdiff, rr.p), stringsAsFactors = FALSE)
+rm(t7, rr.p)
+
+t7.m <- lm(log(tfl.rr) ~ log(t7.tdiff), data = df)
+summary(t7.m)
+predicted <- round(exp(predict(t7.m, newdata = p.frame, interval = "prediction")),2)
+p.frame$rr.p <- NULL
+p.frame <- cbind(p.frame, predicted)
+p.frame$fit2 <- paste(sprintf("%.2f", p.frame$fit), " (", sprintf("%.2f", p.frame$lwr), "-", 
+                      sprintf("%.2f", p.frame$upr), ")", sep = "")
+p.frame$fit <- NULL
+p.frame$lwr <- NULL
+p.frame$upr <- NULL
+names(p.frame) <- c("Time to seven breaths (s)", "\\shortstack{Predicted respiration rate \\\\(minutes, with prediction interval)}")
+p.frame <- xtable(p.frame, 
+                  caption = "Predicted respiration values for given times to seven breaths.",
+                  label = "pred.table")
+print(p.frame, booktabs = TRUE, include.rownames = FALSE, sanitize.text.function = identity)
