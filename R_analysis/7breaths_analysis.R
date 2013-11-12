@@ -1,6 +1,12 @@
 library(ggplot2)
 library(plyr)
 library(xtable)
+
+printPVal <- function(x){
+  ifelse(x < 0.001, "< 0.001", 
+         ifelse(x < 0.05, "< 0.05", round(x,2)))
+}
+
 setwd("/home/simon/R_stuff/breaths/7breathsdata/R_analysis")
 load("converted.RData")
 head(df)
@@ -87,10 +93,11 @@ df$data[1]/1000
 # (df$data[5]/1000) - (df$data[1]/1000)
 
 # get single observation data
-df$uniq <- !duplicated(df$rr_id)
+df$uniq <- ifelse(!duplicated(df$rr_id),1,0)
 sum(df$uniq)
 df2 <- df[df$uniq == 1,]
 head(df2)
+table(df2$uniq, useNA = "ifany")
 
 png("correlation.png", height = 500, width = 500, res = 300)
 p <- ggplot(df2, aes(x = tfl.rr, y = t7.tdiff)) + geom_point()
@@ -110,9 +117,13 @@ q <- ggplot(df2, aes(x = tfl.rr)) + geom_histogram()
 q + scale_x_continuous("Respiration rate (breaths per minute)")
 
 correlation <- cor(x = df2$tfl.rr, y = df2$t7.tdiff, use = "complete.obs")
+correlation <- cor(x = df2$max.breath.2, y = df2$t7.tdiff, use = "complete.obs")
 
 c.test.results <- cor.test(x = df2$tfl.rr, y = df2$t7.tdiff, alternative = "two.sided", 
                            method = "pearson")
+
+printPVal(c.test.results$p.value)
+       
 
 # Prediction ####
 # Given the correlation between t7.tdiff and 1 min rr, how good is the prediction of rr, for a given t7/
@@ -137,3 +148,34 @@ p.frame <- xtable(p.frame,
                   caption = "Predicted respiration values for given times to seven breaths.",
                   label = "pred.table")
 print(p.frame, booktabs = TRUE, include.rownames = FALSE, sanitize.text.function = identity)
+
+# Range subanalysis ####
+# tachypnoea > 20 rr in adults. Children, up to 60 is normal.
+# tachypnoea <12 rr in adults. 
+df2$rr_group <- "under 5"
+df2$rr_group[df2$tfl.rr < 5 & !is.na(df2$tfl.rr)] <- "\textless 5"
+df2$rr_group[df2$tfl.rr >= 5 & df2$tfl.rr <12 & !is.na(df2$tfl.rr)] <- "5 - 11"
+df2$rr_group[df2$tfl.rr > 12 & df2$tfl.rr <21 & !is.na(df2$tfl.rr)] <- "12 - 20"
+df2$rr_group[df2$tfl.rr > 20 & df2$tfl.rr <41 & !is.na(df2$tfl.rr)] <- "21 - 40"
+df2$rr_group[df2$tfl.rr > 40 & df2$tfl.rr <61 & !is.na(df2$tfl.rr)] <- "41 - 60"
+df2$rr_group[df2$tfl.rr > 60  & !is.na(df2$tfl.rr)] <- "\textgreater 60"
+table(df2$rr_group, useNA = "ifany")
+#df2$n <- 1
+
+df2.2 <- df2[!is.na(df2$t7.tdiff),]
+df2.2 <- df2.2[!is.na(df2.2$tfl.rr),]
+
+group.corr <- ddply(df2.2, .(rr_group), summarise, n = sum(uniq), 
+                    correlation = cor(x = log(t7.tdiff), y = log(tfl.rr), 
+                                      use = "complete.obs"))
+group.corr$correlation <- round(group.corr$correlation, 2)
+group.corr$rr_group <- factor(group.corr$rr_group, levels = c("\textless 5", "5 - 11", "12 - 20",
+                                                              "21 - 40", "41 - 60", "\textgreater 60"))
+group.corr <- group.corr[order(group.corr$rr_group),]
+group.corr
+
+correlation = cor(x = df2$tfl.rr, y = df2$t7.tdiff, use = "complete.obs")
+
+p <- ggplot(df2, aes(x = log(as.numeric(tfl.rr)), y = log(t7.tdiff))) + geom_point() + facet_wrap(~rr_group, ncol = 1)
+p + scale_x_continuous("Log breaths per minute") + 
+  scale_y_continuous("log time to seven breaths (s)")
