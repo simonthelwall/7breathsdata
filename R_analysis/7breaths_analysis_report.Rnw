@@ -13,6 +13,17 @@
 
 \maketitle
 
+<<functions, echo=FALSE, results='asis'>>=
+pValFunTex <- function(x){
+  if (x < 0.001) z <- as.character("p \textless 0.001")
+  else if (x < 0.01) z <- as.character("p \textless 0.01")
+  else if (x < 0.05) z <- as.character("p \textless 0.05")
+  else if (x < 0.1) z <- as.character("p \textless 0.1")
+  else z <- as.character(paste("p = ", round(x, 2), sep = ""))
+  return(z)
+}
+@
+
 \section{Objectives}
 \begin{enumerate}
 \item To characterise the data collected in the seven breaths study.
@@ -25,7 +36,8 @@ library(ggplot2)
 library(plyr)
 library(xtable)
 
-setwd("/home/simon/R_stuff/breaths/7breathsdata/R_analysis")
+#setwd("/home/simon/R_stuff/breaths/7breathsdata/R_analysis")
+setwd("E:\\My Documents B\\R\\7breathsdata\\R_analysis")
 load("converted.RData")
 
 df$data <- as.numeric(df$data)
@@ -156,5 +168,49 @@ p.frame <- xtable(p.frame,
                   label = "pred.table")
 digits(p.frame)[2] <- 0
 print(p.frame, booktabs = TRUE, include.rownames = FALSE, sanitize.text.function = identity)
+@
+\textit{Analysis of data with quality criteria}\\
+As data were gathered without investigator supervision, the data quality may affect the correlation between time to seven breaths and the respiration rate.
+To assess this, data at the extremes were considered least reliable and removed from the analysis. 
+Observations where the time to seven breaths was less than six seconds or greater than 60 seconds were dropped.\\
+<<drop_extremes, echo=FALSE, results='asis'>>=
+df2 <- df2[df2$t7.tdiff > 6 & df2$t7.tdiff < 60, ]
+@
+
+Data consisted of \Sexpr{length(df2$rr_id)} observations on \Sexpr{sum(df2$uniq, na.rm = TRUE)} individuals. 
+The median number of breaths per individual was \Sexpr{median(df2$max, na.rm = TRUE)} (IQR: \Sexpr{quantile(df2$max, probs = 0.25, names = FALSE, na.rm = TRUE)} - \Sexpr{quantile(df2$max, probs = 0.75, names = FALSE, na.rm = TRUE)}). 
+
+Figures \ref{normal_edited_scatter} and \ref{logged_edited_scatter} show the correlations between time to seven breaths and respiration rate for the filtered data set.
+
+\begin{figure*}
+<<normal_scatter_2, echo=FALSE, warning=FALSE, fig.width=5.2, fig.height=3, out.width='1\\linewidth', fig.keep='last'>>=
+p <- ggplot(df2, aes(x = tfl.rr, y = t7.tdiff)) + geom_point()
+p + scale_x_continuous("Breaths per minute") + scale_y_continuous("Time to seven breaths (s)")
+@
+\caption{Correlation of time to seven breaths with measured respiration rate, filtered data}
+\label{normal_edited_scatter}
+\end{figure*}
+
+\begin{figure*}
+<<logged_scatter_2,echo=FALSE, warning=FALSE, fig.width=5.2, fig.height=3, out.width='1\\linewidth', fig.keep='last'>>=
+p <- ggplot(df2, aes(x = log(tfl.rr), y = log(t7.tdiff))) + geom_point()
+p + scale_x_continuous("Log breaths per minute") + 
+  scale_y_continuous("log time to seven breaths (s)")
+@
+\caption{Correlation of logged time to seven breaths with logged respiration rate, filtered data}
+\label{logged_edited_scatter}
+\end{figure*}
+
+<<corr2, echo=FALSE, results='asis'>>=
+correlation <- cor(x = df2$tfl.rr, y = df2$t7.tdiff, use = "complete.obs")
+
+c.test.results <- cor.test(x = df2$tfl.rr, y = df2$t7.tdiff, alternative = "two.sided", 
+                           method = "pearson")
+@
+The Pearson correlation coefficient between the time to seven breaths and the respiration rate was \Sexpr{round(correlation, 2)} 
+(\Sexpr{pValFunTex(0.5)}) %(\Sexpr{pValFunTex(c.test.results$p.value)[1]}).
+Figures \ref{normal_edited_scatter} and \ref{logged_edited_scatter} show the correlation between the time to seven breaths and the respiration rate for untransformed data and logged results respectively. \\
+<<corr_p_val, echo=TRUE, results='asis'>>=
+pValFunTex(c.test.results$p.value)
 @
 \end{document}
